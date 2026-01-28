@@ -1,0 +1,316 @@
+:root {
+    --primary-color: #4f46e5;
+    --primary-light: #6366f1;
+    --primary-dark: #4338ca;
+    --secondary-color: #7c3aed;
+    --accent-color: #2563eb;
+    --light-color: #f9fafb;
+    --dark-color: #111827;
+    --gray-dark: #374151;
+    --gray-medium: #6b7280;
+    --gray-light: #e5e7eb;
+    --danger-color: #dc2626;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --border-radius: 12px;
+    --border-radius-sm: 8px;
+    --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --box-shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+    background-color: #f3f4f6;
+    color: var(--dark-color);
+    line-height: 1.5;
+}
+
+.admin-dashboard-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.admin-top-bar {
+    background-color: white;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--box-shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 70px;
+}
+
+.logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.admin-info {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.admin-info span {
+    font-weight: 500;
+    color: var(--gray-dark);
+}
+
+.logout-btn {
+    color: var(--gray-medium);
+    text-decoration: none;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius-sm);
+}
+
+.logout-btn:hover {
+    color: var(--danger-color);
+    background-color: rgba(220, 38, 38, 0.1);
+}
+
+.admin-main-content {
+    display: flex;
+    flex: 1;
+}
+
+.admin-sidebar {
+    width: 280px;
+    background-color: rgb(54, 51, 112);
+    padding: 1.5rem 0;
+    height: calc(100vh - 70px);
+    position: sticky;
+    top: 70px;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-logo img {
+    max-width: 60px;
+    height: auto;
+}
+
+.sidebar-logo span {
+    color: white;
+    font-weight: 500;
+    font-size: 1.1rem;
+}
+
+.admin-sidebar ul {
+    list-style: none;
+    padding: 0 1rem;
+}
+
+.admin-sidebar a {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    color: white;
+    text-decoration: none;
+    transition: var(--transition);
+    gap: 0.75rem;
+    border-radius: var(--border-radius-sm);
+    font-weight: 500;
+}
+
+.admin-sidebar a:hover, .admin-sidebar .active a {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.admin-content-area {
+    flex: 1;
+    padding: 2rem;
+    background-color: #f3f4f6; /* Ensure a clean background */
+}
+
+.content-header {
+    margin-bottom: 2rem;
+}
+
+.content-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+/* Grid Layout for Stats and Charts */
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.stat-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--box-shadow-md);
+}
+
+.stat-card h3 {
+    font-size: 0.9rem;
+    color: var(--gray-medium);
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.stat-card p {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--dark-color);
+}
+
+.charts-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.chart-card {
+    background: #fff;
+    padding: 1.8rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.chart-card h3 {
+    margin-bottom: 1.2rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+/* Schedule Container */
+.schedule-container {
+    background-color: white;
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    margin-bottom: 2rem;
+}
+
+.schedule-container h3 {
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--gray-light);
+    border-radius: var(--border-radius-sm);
+}
+
+.btn-schedule {
+    background-color: var(--primary-color);
+    color: white;
+    margin-right: 1rem;
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.message {
+    padding: 1rem;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 1.5rem;
+    border-left: 4px solid;
+}
+
+.message.success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.message.error {
+    background-color: rgba(220, 38, 38, 0.1);
+    color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+.content-table-container {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 2rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead {
+    background-color: var(--light-color);
+}
+
+th, td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--gray-light);
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+}
+
+.btn-success {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #059669;
+}

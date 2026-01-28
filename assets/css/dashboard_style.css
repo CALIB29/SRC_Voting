@@ -1,0 +1,245 @@
+/* General Styles */
+:root {
+    --primary-color: #4361ee;
+    --secondary-color: #3f37c9;
+    --background-color: #f5f7fb;
+    --sidebar-bg: #ffffff;
+    --text-color: #212529;
+    --text-light: #6c757d;
+    --border-color: #e9ecef;
+    --success-color: #4cc9f0;
+    --info-color: #4895ef;
+    --white: #fff;
+    --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    --border-radius: 12px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.dashboard-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    background: var(--sidebar-bg);
+    box-shadow: var(--box-shadow);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+}
+
+.sidebar .logo {
+    text-align: center;
+    padding: 0 20px 20px 20px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.sidebar .logo img {
+    max-width: 80px;
+    margin-bottom: 10px;
+}
+
+.sidebar .logo h5 {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0 15px;
+}
+
+.sidebar ul li a {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: var(--text-light);
+    text-decoration: none;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.sidebar ul li a:hover,
+.sidebar ul li.active a {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+.sidebar ul li a i {
+    margin-right: 12px;
+    width: 20px;
+    text-align: center;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.top-bar {
+    background: var(--white);
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--box-shadow);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.top-bar .page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+.user-info .user-avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 10px;
+}
+
+.user-info span {
+    font-weight: 500;
+    margin-right: 20px;
+}
+
+.logout-btn {
+    background-color: var(--primary-color);
+    color: var(--white);
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.3s ease;
+}
+
+.logout-btn:hover {
+    background-color: var(--secondary-color);
+}
+
+.logout-btn i {
+    margin-right: 8px;
+}
+
+.content-area {
+    padding: 30px;
+}
+
+.welcome-header h2 {
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+/* Alert Boxes */
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+}
+
+.alert i {
+    margin-right: 10px;
+}
+
+.alert.success {
+    background-color: #e8f8fd;
+    color: #3ab7e0;
+}
+
+.alert.info {
+    background-color: #e8f2fe;
+    color: #4895ef;
+}
+
+.alert a {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+/* User Details Card */
+.user-details {
+    background: var(--white);
+    padding: 25px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+.user-details h3 {
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+}
+
+.user-details h3 i {
+    margin-right: 10px;
+    color: var(--primary-color);
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.detail-item {
+    background: var(--background-color);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.detail-item .label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 5px;
+}
+
+.detail-item .value {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.detail-item .value.voted {
+    color: var(--success-color);
+}
+
+.detail-item .value.not-voted {
+    color: #f72585; /* Warning color */
+}
