@@ -250,6 +250,47 @@ if ($active_election_id) {
         .modal-content::-webkit-scrollbar-thumb:hover {
             background: var(--secondary);
         }
+
+        /* Suggestions List */
+        .suggestions-list {
+            position: absolute;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0 0 12px 12px;
+            width: 100%;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            list-style: none;
+            padding: 0;
+            margin-top: 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .suggestions-list li {
+            padding: 12px 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .suggestions-list li:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .suggestions-list li:last-child {
+            border-bottom: none;
+        }
+
+        .past-candidate-badge {
+            font-size: 0.7rem;
+            background: var(--warning);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+            display: inline-block;
+        }
     </style>
 </head>
 
@@ -355,6 +396,16 @@ if ($active_election_id) {
                         </div>
                     <?php else: ?>
                         <form method="post" enctype="multipart/form-data" class="modern-form">
+                            <div class="form-group" style="margin-bottom: 1.5rem; position: relative;">
+                                <label class="form-label">Search Student Database</label>
+                                <div style="position: relative;">
+                                    <input type="text" id="search_student" class="modern-input"
+                                        placeholder="Type name to search existing students..." autocomplete="off">
+                                    <i class="fas fa-search"
+                                        style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                                </div>
+                                <ul id="suggestions" class="suggestions-list" style="display: none;"></ul>
+                            </div>
                             <div
                                 style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
                                 <div class="form-group"><label class="form-label">First Name</label><input type="text"
@@ -754,6 +805,70 @@ if ($active_election_id) {
             if (event.target == modal) {
                 closeEditModal();
             }
+        }
+
+        // Student Search and Suggestion
+        const searchStudentInput = document.getElementById('search_student');
+        const suggestionsList = document.getElementById('suggestions');
+
+        if (searchStudentInput) {
+            let debounceTimer;
+
+            searchStudentInput.addEventListener('input', function () {
+                clearTimeout(debounceTimer);
+                const query = this.value;
+
+                if (query.length < 2) {
+                    suggestionsList.style.display = 'none';
+                    return;
+                }
+
+                debounceTimer = setTimeout(() => {
+                    fetch(`get_potential_candidates.php?search=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            suggestionsList.innerHTML = '';
+                            if (data.length > 0) {
+                                data.forEach(student => {
+                                    const li = document.createElement('li');
+                                    const pastBadge = student.is_past_candidate ?
+                                        `<span class="past-candidate-badge"><i class="fas fa-history"></i> Past: ${student.past_position}</span>` : '';
+
+                                    li.innerHTML = `
+                                        <div style="font-weight: 600; color: var(--text-main);">
+                                            ${student.first_name} ${student.middle_name || ''} ${student.last_name}
+                                            ${pastBadge}
+                                        </div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted);">ID: ${student.student_id ? student.student_id : 'N/A'}</div>
+                                    `;
+
+                                    li.addEventListener('click', () => {
+                                        document.querySelector('input[name="first_name"]').value = student.first_name;
+                                        document.querySelector('input[name="middle_name"]').value = student.middle_name || '';
+                                        document.querySelector('input[name="last_name"]').value = student.last_name;
+                                        // Year and Section still need manual input as not in student table (or reliable)
+
+                                        searchStudentInput.value = '';
+                                        suggestionsList.style.display = 'none';
+                                    });
+
+                                    suggestionsList.appendChild(li);
+                                });
+                                suggestionsList.style.display = 'block';
+                            } else {
+                                suggestionsList.style.display = 'none';
+                            }
+                        })
+                        .catch(err => console.error('Error fetching suggestions:', err));
+                }, 300);
+            });
+
+            // Hide suggestions when clicking outside
+            document.addEventListener('click', function (e) {
+                if (e.target !== searchStudentInput && !suggestionsList.contains(e.target)) {
+                    suggestionsList.style.display = 'none';
+                }
+            });
         }
     </script>
 </body>
