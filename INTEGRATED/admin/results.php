@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 
@@ -17,7 +16,7 @@ $page_title = "Live Results Analytics";
 if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     $election_id_to_show = $_GET['id'];
     $is_viewing_archive = true;
-    $stmt = $pdo->prepare("SELECT title FROM elections WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT title FROM vot_elections WHERE id = ?");
     $stmt->execute([$election_id_to_show]);
     $election_name_from_db = $stmt->fetchColumn();
     if ($election_name_from_db) {
@@ -25,7 +24,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
         $page_title = "Retrospective: " . $election_name;
     }
 } else {
-    $stmt = $pdo->prepare("SELECT id, title FROM elections WHERE is_active = 1");
+    $stmt = $pdo->prepare("SELECT id, title FROM vot_elections WHERE is_active = 1");
     $stmt->execute();
     $active_election = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($active_election) {
@@ -43,8 +42,8 @@ if ($election_id_to_show) {
     // Logic updated for tie-breaker: first to receive a vote wins
     $stmt = $pdo->prepare("
         SELECT c.*, 
-        (SELECT MIN(vote_id) FROM votes WHERE candidate_id = c.id) as first_vote_id
-        FROM candidates c
+        (SELECT MIN(vote_id) FROM vot_votes WHERE candidate_id = c.id) as first_vote_id
+        FROM vot_candidates c
         WHERE c.election_id = :id 
         ORDER BY c.position, c.votes DESC, first_vote_id ASC
     ");
@@ -52,12 +51,12 @@ if ($election_id_to_show) {
     $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     if ($candidates) {
-        $stmt = $pdo->prepare("SELECT DISTINCT position FROM candidates WHERE election_id = :id");
+        $stmt = $pdo->prepare("SELECT DISTINCT position FROM vot_candidates WHERE election_id = :id");
         $stmt->execute(['id' => $election_id_to_show]);
         $positions_in_db = $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    $stmt = $pdo->prepare("SELECT COUNT(DISTINCT user_id) FROM votes WHERE election_id = :id");
+    $stmt = $pdo->prepare("SELECT COUNT(DISTINCT user_id) FROM vot_votes WHERE election_id = :id");
     $stmt->execute(['id' => $election_id_to_show]);
     $total_votes = $stmt->fetchColumn();
 }
@@ -86,7 +85,7 @@ $voter_turnout = ($total_users > 0 && $total_votes > 0) ? round(($total_votes / 
 $voting_schedule = null;
 $election_end_time = null;
 if ($election_id_to_show && !$is_viewing_archive) {
-    $stmt = $pdo->query("SELECT * FROM voting_schedule LIMIT 1");
+    $stmt = $pdo->query("SELECT * FROM vot_voting_schedule LIMIT 1");
     $voting_schedule = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($voting_schedule && isset($voting_schedule['end_datetime'])) {
         $election_end_time = $voting_schedule['end_datetime'];
@@ -97,11 +96,11 @@ if ($election_id_to_show && !$is_viewing_archive) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['end_election']) && !$is_viewing_archive) {
     try {
         // Mark election as inactive
-        $stmt = $pdo->prepare("UPDATE elections SET is_active = 0, end_datetime = NOW() WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE vot_elections SET is_active = 0, end_datetime = NOW() WHERE id = ?");
         $stmt->execute([$election_id_to_show]);
 
         // Clear voting schedule
-        $pdo->query("DELETE FROM voting_schedule");
+        $pdo->query("DELETE FROM vot_voting_schedule");
 
         // Redirect to show winners
         header("Location: results.php?id=" . $election_id_to_show);
@@ -343,9 +342,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['end_election']) && !$
             }
         }
     </style>
+
+    <link rel="stylesheet" href="../../assets/css/mobile_base.css">
 </head>
 
 <body>
+    <?php if (function_exists('renderMobileTopBar'))
+        renderMobileTopBar('Results'); ?>
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -537,7 +540,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['end_election']) && !$
                         </h3>
                         <p style="color: var(--text-secondary); max-width: 400px; margin: 0 auto 2rem auto;">
                             There is currently no active election. You need to start a new election to begin adding candidates
-                            and accepting votes.
+                            and accepting vot_votes.
                         </p>
                         <button
                             onclick="if(confirm('Start a new election now? This will archive any previous voting data.')) window.location.href='start_new_election.php';"
@@ -631,9 +634,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['end_election']) && !$
             <?php endif; ?>
 
             <!-- Floating Actions -->
-            <div style="position: fixed; bottom: 2rem; right: 2rem; display: flex; gap: 1rem; z-index: 100;">
-                <button onclick="window.print()" class="modern-button primary"
-                    style="box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4); padding: 1rem 1.5rem; border-radius: 99px;">
+            <div class="floating-actions">
+                <button onclick="window.print()" class="modern-button primary">
                     <i class="fas fa-print"></i> Export Report
                 </button>
 
@@ -641,14 +643,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['end_election']) && !$
                     <form method="POST" style="display: inline;"
                         onsubmit="return confirm('⚠️ CRITICAL ACTION\n\nThis will:\n✓ End the current election immediately\n✓ Close voting for all students\n✓ Display winners automatically\n✓ Move election to archives\n\nThis action cannot be undone. Proceed?');">
                         <input type="hidden" name="end_election" value="1">
-                        <button type="submit" class="modern-button danger"
-                            style="box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.4); padding: 1rem 1.5rem; border-radius: 99px;">
+                        <button type="submit" class="modern-button danger">
                             <i class="fas fa-stop-circle"></i> End Election Now
                         </button>
                     </form>
                 <?php else: ?>
-                    <a href="manage_history.php" class="modern-button secondary"
-                        style="padding: 1rem 1.5rem; border-radius: 99px;">
+                    <a href="manage_history.php" class="modern-button secondary">
                         <i class="fas fa-arrow-left"></i> Back to History
                     </a>
                 <?php endif; ?>
@@ -678,8 +678,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['end_election']) && !$
                 updateStatText('turnout-val', data.voter_turnout + '%');
 
                 // Update Each Position
-                for (const [pos, candidates] of Object.entries(data.positions)) {
-                    updatePositionPool(pos, candidates);
+                for (const [pos, vot_candidates] of Object.entries(data.positions)) {
+                    updatePositionPool(pos, vot_candidates);
                 }
             } catch (error) {
                 console.error("Polling error:", error);
@@ -709,7 +709,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['end_election']) && !$
             sortedCandidates.forEach(cand => {
                 const card = document.getElementById(`candidate-${cand.id}`);
                 if (card) {
-                    // Update Votes
+                    // Update vot_votes
                     const voteEl = document.getElementById(`votes-val-${cand.id}`);
                     const oldVotes = parseInt(voteEl.innerText.replace(/,/g, ''));
                     if (parseInt(cand.votes) > oldVotes) {
@@ -856,6 +856,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['end_election']) && !$
             }());
         });
     </script>
+
+    <?php if (function_exists('renderMobileBottomNav'))
+        renderMobileBottomNav('admin'); ?>
 </body>
 
 </html>

@@ -1,5 +1,8 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params(['path' => '/']);
+    session_start();
+}
 
 // --- 1. DATABASE CONNECTION & SETUP ---
 require_once 'includes/db_connections.php';
@@ -55,7 +58,8 @@ if (!empty($department_db_map)) {
     <title>Registrar Dashboard - Student Management</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- DataTables CSS -->
@@ -310,7 +314,8 @@ if (!empty($department_db_map)) {
                 <p>To ensure a successful bulk import, please format your CSV file according to the following rules:</p>
                 <ol>
                     <li><strong>Required Header Row:</strong> The first row must be headers (e.g.,
-                        <code>student_id</code>). It will be skipped.</li>
+                        <code>student_id</code>). It will be skipped.
+                    </li>
                     <li><strong>Strict Column Order:</strong> Columns must be in this exact sequence:
                         <code>student_id, first_name, middle_name, last_name, gmail, department, year_section</code>
                     </li>

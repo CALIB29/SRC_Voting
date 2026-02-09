@@ -297,7 +297,7 @@ $dbname = "src_db";
 $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) { die("Connection failed: " . $conn->connect_error); }
 
-$sql = "SELECT * FROM election_history";
+$sql = "SELECT * FROM vot_election_history";
 $result = $conn->query($sql);
 
 $candidates = [];
@@ -308,7 +308,7 @@ if ($result->num_rows > 0) {
     }
 }
 
-$sql2 = "SELECT * FROM election_history_photos";
+$sql2 = "SELECT * FROM vot_election_history_photos";
 $result2 = $conn->query($sql2);
 if ($result2->num_rows > 0) {
     while($row2 = $result2->fetch_assoc()) {
@@ -328,7 +328,7 @@ $conn->close();
 // Group candidates by position
 const grid = document.getElementById('candidateGrid');
 const groupedCandidates = {};
-candidates.forEach(c => {
+vot_candidates.forEach(c => {
     if (!groupedCandidates[c.position]) groupedCandidates[c.position] = [];
     groupedCandidates[c.position].push(c);
 });

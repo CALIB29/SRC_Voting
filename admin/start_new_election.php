@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../includes/db_connect.php'; // Siguraduhing tama ang path
 
 if (!isset($_SESSION['admin_id'])) {
@@ -13,12 +12,12 @@ $pdo->beginTransaction();
 try {
     // 1. I-deactivate ang lahat ng kasalukuyang active na election
     // Gagawin nitong "archived" o luma ang kasalukuyang halalan
-    $pdo->query("UPDATE elections SET is_active = 0 WHERE is_active = 1");
+    $pdo->query("UPDATE vot_elections SET is_active = 0 WHERE is_active = 1");
 
     // 2. Gumawa ng bagong election record at i-set ito bilang active (is_active = 1)
     // Ang pangalan ay base sa kasalukuyang petsa para madaling tandaan
     $newElectionName = "Election " . date("Y-m-d H:i");
-    $stmt = $pdo->prepare("INSERT INTO elections (title, is_active) VALUES (?, 1)");
+    $stmt = $pdo->prepare("INSERT INTO vot_elections (title, is_active) VALUES (?, 1)");
     $stmt->execute([$newElectionName]);
 
     // 3. I-reset ang 'has_voted' status ng LAHAT ng users para makaboto sila ulit sa bagong halalan

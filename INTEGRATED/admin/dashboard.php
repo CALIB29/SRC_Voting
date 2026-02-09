@@ -1,6 +1,5 @@
 <?php
 
-session_start();
 
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
@@ -17,7 +16,7 @@ $keep_schedule_open = false; // Add this variable to track if schedule section s
 $total_users = $pdo->query("SELECT COUNT(*) FROM students")->fetchColumn();
 $approved_users = $pdo->query("SELECT COUNT(*) FROM students WHERE is_approved = 1")->fetchColumn();
 $pending_users = $pdo->query("SELECT COUNT(*) FROM students WHERE is_approved = 0")->fetchColumn();
-$total_candidates = $pdo->query("SELECT COUNT(*) FROM candidates")->fetchColumn();
+$total_candidates = $pdo->query("SELECT COUNT(*) FROM vot_candidates")->fetchColumn();
 $voted_users = $pdo->query("SELECT COUNT(*) FROM students WHERE has_voted = 1")->fetchColumn();
 
 // Handle schedule form
@@ -41,18 +40,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($start_timestamp >= $end_timestamp) {
                 $schedule_message = "End date/time must be after start date/time.";
             } else {
-                $existing_schedule = $pdo->query("SELECT COUNT(*) FROM voting_schedule")->fetchColumn();
+                $existing_schedule = $pdo->query("SELECT COUNT(*) FROM vot_voting_schedule")->fetchColumn();
 
                 try {
                     if ($existing_schedule > 0) {
-                        $stmt = $pdo->prepare("UPDATE voting_schedule SET start_datetime = ?, end_datetime = ?, updated_at = NOW()");
+                        $stmt = $pdo->prepare("UPDATE vot_voting_schedule SET start_datetime = ?, end_datetime = ?, updated_at = NOW()");
                         $success = $stmt->execute([$start_datetime, $end_datetime]);
                     } else {
-                        $stmt = $pdo->prepare("INSERT INTO voting_schedule (start_datetime, end_datetime, created_at) VALUES (?, ?, NOW())");
+                        $stmt = $pdo->prepare("INSERT INTO vot_voting_schedule (start_datetime, end_datetime, created_at) VALUES (?, ?, NOW())");
                         $success = $stmt->execute([$start_datetime, $end_datetime]);
                     }
 
-                    $schedule_message = $success ? "Voting schedule updated successfully!" : "Error updating voting schedule.";
+                    $schedule_message = $success ? "Voting schedule updated successfully!" : "Error updating voting vot_schedules.";
                 } catch (PDOException $e) {
                     $schedule_message = "Database error: " . $e->getMessage();
                 }
@@ -61,16 +60,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (isset($_POST['reset_schedule'])) {
         $keep_schedule_open = true; // Keep schedule section open after form submission
         try {
-            $stmt = $pdo->prepare("DELETE FROM voting_schedule");
+            $stmt = $pdo->prepare("DELETE FROM vot_voting_schedule");
             $success = $stmt->execute();
-            $schedule_message = $success ? "Voting schedule has been reset!" : "Error resetting schedule.";
+            $schedule_message = $success ? "Voting schedule has been reset!" : "Error resetting vot_schedules.";
         } catch (PDOException $e) {
             $schedule_message = "Database error: " . $e->getMessage();
         }
     }
 }
 
-$schedule = $pdo->query("SELECT * FROM voting_schedule LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+$schedule = $pdo->query("SELECT * FROM vot_voting_schedule LIMIT 1")->fetch(PDO::FETCH_ASSOC);
 
 // Fetch latest election winners for dashboard display
 require_once '../../includes/get_winners.php';
@@ -89,9 +88,13 @@ $winnersData = getLatestElectionWinners($pdo);
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="../../assets/css/modern_admin.css">
+
+    <link rel="stylesheet" href="../../assets/css/mobile_base.css">
 </head>
 
 <body>
+    <?php if (function_exists('renderMobileTopBar'))
+        renderMobileTopBar('Dashboard'); ?>
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -163,7 +166,8 @@ $winnersData = getLatestElectionWinners($pdo);
                         style="position: absolute; top: -20px; right: -20px; font-size: 8rem; color: rgba(79, 70, 229, 0.05); transform: rotate(-15deg);">
                         <i class="fas fa-trophy"></i>
                     </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; position: relative; z-index: 1;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; position: relative; z-index: 1;">
                         <div style="display: flex; align-items: center; gap: 1rem;">
                             <div
                                 style="width: 50px; height: 50px; background: var(--warning); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white;">
@@ -173,12 +177,13 @@ $winnersData = getLatestElectionWinners($pdo);
                                 <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-main); line-height: 1;">
                                     Election Winners</h2>
                                 <p style="color: var(--text-muted); font-weight: 500; font-size: 0.9rem;">
-                                    <?php echo htmlspecialchars($winnersData['election']['title']); ?> - Official Final Results
+                                    <?php echo htmlspecialchars($winnersData['election']['title']); ?> - Official Final
+                                    Results
                                 </p>
                             </div>
                         </div>
-                        <a href="results.php?id=<?php echo $winnersData['election']['id']; ?>"
-                            class="modern-button primary" style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">
+                        <a href="results.php?id=<?php echo $winnersData['election']['id']; ?>" class="modern-button primary"
+                            style="padding: 0.6rem 1.2rem; font-size: 0.85rem;">
                             View Detailed Results
                         </a>
                     </div>
@@ -187,7 +192,7 @@ $winnersData = getLatestElectionWinners($pdo);
                         style="display: flex; gap: 1.5rem; overflow-x: auto; padding: 1.5rem 0 1rem 0; scrollbar-width: thin;">
                         <?php foreach ($winnersData['winners'] as $winner): ?>
                             <div class="winner-spotlight-card"
-                                style="flex: 0 0 240px; background: var(--bg-primary); border-radius: 20px; padding: 1.5rem; border: 1px solid var(--border); position: relative; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
+                                style="flex: 0 0 240px; background: var(--bg-card); border-radius: 20px; padding: 1.5rem; border: 1px solid var(--border); position: relative; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
                                 <div class="winner-badge"
                                     style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(to right, var(--primary), var(--secondary)); color: white; padding: 6px 16px; border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4); white-space: nowrap; z-index: 10; display: flex; align-items: center; gap: 6px;">
                                     <i class="fas fa-crown" style="font-size: 0.8rem; color: #FFD700;"></i>
@@ -195,18 +200,16 @@ $winnersData = getLatestElectionWinners($pdo);
                                 </div>
                                 <div style="text-align: center; margin-top: 0.5rem;">
                                     <div style="position: relative; display: inline-block;">
-                                        <img src="../../<?php 
-                                            $path = $winner['photo_path'] ?: 'pic/default-avatar.png';
-                                            echo htmlspecialchars(preg_replace('/^(\.\.\/|\.\/)+/', '', $path));
-                                        ?>"
+                                        <img src="<?php echo fixCandidatePhotoPath($winner['photo_path'], '../../'); ?>"
                                             onerror="this.src='../../logo/srclogo.png'"
                                             style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary);">
                                         <div
-                                            style="position: absolute; bottom: 0; right: 0; background: var(--warning); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid var(--bg-primary);">
+                                            style="position: absolute; bottom: 0; right: 0; background: var(--warning); width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 2px solid var(--bg-card);">
                                             <i class="fas fa-check" style="font-size: 0.75rem;"></i>
                                         </div>
                                     </div>
-                                    <h4 style="margin-top: 1rem; font-weight: 700; color: var(--text-main); min-height: 2.4em; display: flex; align-items: center; justify-content: center;">
+                                    <h4
+                                        style="margin-top: 1rem; font-weight: 700; color: var(--text-main); min-height: 2.4em; display: flex; align-items: center; justify-content: center;">
                                         <?php echo htmlspecialchars($winner['first_name'] . ' ' . $winner['last_name']); ?>
                                     </h4>
                                     <div
@@ -285,7 +288,7 @@ $winnersData = getLatestElectionWinners($pdo);
                     <div>
                         <h4
                             style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 1rem;">
-                            Update Schedule</h4>
+                            Update vot_schedules</h4>
                         <form method="POST" class="schedule-form">
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                                 <div>
@@ -430,6 +433,9 @@ $winnersData = getLatestElectionWinners($pdo);
             });
         }
     </script>
+
+    <?php if (function_exists('renderMobileBottomNav'))
+        renderMobileBottomNav('admin'); ?>
 </body>
 
 </html>

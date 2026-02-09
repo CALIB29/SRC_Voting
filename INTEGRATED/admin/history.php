@@ -1,11 +1,10 @@
 <?php
-session_start();
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 
 // Fetch history records grouped by position
 try {
-    $stmt = $pdo->query("SELECT * FROM election_history ORDER BY year DESC, id ASC");
+    $stmt = $pdo->query("SELECT * FROM vot_election_history ORDER BY year DESC, id ASC");
     $all_history = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $all_history = [];

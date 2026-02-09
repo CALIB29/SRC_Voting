@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../includes/db_connect.php';
 header('Content-Type: application/json');
 
@@ -11,7 +10,7 @@ if (!isset($_SESSION['admin_id'])) {
 $election_id = isset($_GET['id']) && is_numeric($_GET['id']) ? $_GET['id'] : null;
 
 if (!$election_id) {
-    $stmt = $pdo->prepare("SELECT id FROM elections WHERE is_active = 1");
+    $stmt = $pdo->prepare("SELECT id FROM vot_elections WHERE is_active = 1");
     $stmt->execute();
     $active_election = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($active_election) {
@@ -25,7 +24,7 @@ if (!$election_id) {
 }
 
 // Get Total Votes and Users
-$stmt = $pdo->prepare("SELECT COUNT(DISTINCT user_id) FROM votes WHERE election_id = :id");
+$stmt = $pdo->prepare("SELECT COUNT(DISTINCT user_id) FROM vot_votes WHERE election_id = :id");
 $stmt->execute(['id' => $election_id]);
 $total_votes = $stmt->fetchColumn();
 
@@ -35,8 +34,8 @@ $voter_turnout = ($total_users > 0 && $total_votes > 0) ? round(($total_votes / 
 // Get Candidates with Tie-breaker logic
 $stmt = $pdo->prepare("
     SELECT c.id, c.first_name, c.last_name, c.position, c.votes, c.photo_path, c.platform,
-    (SELECT MIN(vote_id) FROM votes WHERE candidate_id = c.id) as first_vote_id
-    FROM candidates c 
+    (SELECT MIN(vote_id) FROM vot_votes WHERE candidate_id = c.id) as first_vote_id
+    FROM vot_candidates c 
     WHERE c.election_id = :id 
     ORDER BY c.position, c.votes DESC, first_vote_id ASC
 ");

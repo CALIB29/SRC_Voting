@@ -19,10 +19,10 @@ if (isset($_POST['action']) && $_POST['action'] == 'fetch_student') {
 
         if ($student) {
             // Also fetch all courses and departments for the dropdowns
-            $courses_stmt = $pdo->query("SELECT course_id, course_name, department_id FROM course ORDER BY course_name ASC");
+            $courses_stmt = $pdo->query("SELECT course_id, course_name, department_id FROM courses ORDER BY course_name ASC");
             $courses = $courses_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $depts_stmt = $pdo->query("SELECT department_id, department_name FROM department");
+            $depts_stmt = $pdo->query("SELECT department_id, department_name FROM departments");
             $departments = $depts_stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
             echo json_encode([
@@ -35,7 +35,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'fetch_student') {
             echo json_encode(['success' => false, 'message' => 'No student found with this RFID.']);
         }
     } catch (PDOException $e) {
-        echo json_encode(['success' => false, 'message' => 'Database error.']);
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
     }
     exit; // Terminate script after AJAX response
 }
@@ -53,8 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if (empty($rfid_number)) {
         $error = 'An RFID number is required to update an account.';
     } elseif (empty($new_password) && empty($course_id) && (!isset($profile_picture) || $profile_picture['error'] === UPLOAD_ERR_NO_FILE)) {
-        $error = 'Please provide a new password, profile picture, or course to update.';
-    } elseif ($new_password !== $confirm_password) {
+        $error = 'Please provide at least one field to update (password, profile picture, or course).';
+    } elseif (!empty($new_password) && $new_password !== $confirm_password) {
         $error = 'Passwords do not match.';
     }
 
@@ -84,13 +84,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // Handle password update
             if (!empty($new_password)) {
                 $update_parts[] = "password = ?";
-                $params[] = $new_password;
+                $params[] = password_hash($new_password, PASSWORD_DEFAULT);
             }
 
-            // Handle course and department update
+            // Handle course and departments update
             if (!empty($course_id)) {
                 // First, find the department_id for the given course_id
-                $course_stmt = $pdo->prepare("SELECT department_id FROM course WHERE course_id = ?");
+                $course_stmt = $pdo->prepare("SELECT department_id FROM courses WHERE course_id = ?");
                 $course_stmt->execute([$course_id]);
                 $course_data = $course_stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -504,7 +504,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="department_name">Department</label>
+                        <label for="department_name">departments</label>
                         <input type="text" id="department_name" name="department_name" readonly>
                     </div>
                     <div class="form-group">
@@ -580,7 +580,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             courseSelect.appendChild(option);
                         });
 
-                        // Function to update department based on selected course
+                        // Function to update departments based on selected course
                         const updateDepartmentDisplay = () => {
                             const selectedOption = courseSelect.options[courseSelect.selectedIndex];
                             const departmentId = selectedOption.dataset.departmentId;

@@ -147,7 +147,7 @@ if (isset($_GET['search'])) {
     <title><?php echo $BRANDS ?> : Merona4d Santa Rita College of Pampanga </title>
 
     <meta name="description"
-        content="<?php echo $BRANDS ?> Merona4D Santa Rita College of Pampanga, A voting and logo selection system for Santa Rita College of Pampanga, where students, staff, and board members can vote for the logo of their respective departments.">
+        content="<?php echo $BRANDS ?> Merona4D Santa Rita College of Pampanga, A voting and logo selection system for Santa Rita College of Pampanga, where students, staff, and board members can vote for the logo of their respective vot_departments.">
 
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link rel="icon" type="image/x-icon" href="https://res.cloudinary.com/dx6om7eao/image/upload/v1759762905/Tanpa-Judul-3_bmvesa.png">
@@ -187,7 +187,7 @@ if (isset($_GET['search'])) {
   "@type": "Product",
   "name": "<?php echo $BRANDS ?> : Merona4d Santa Rita College of Pampanga ",
   "image": "https://res.cloudinary.com/dx6om7eao/image/upload/v1760012563/12321321adasdsa_hfqxqk.jpg",
-  "description": "<?php echo $BRANDS ?> Merona4D Santa Rita College of Pampanga, A voting and logo selection system for Santa Rita College of Pampanga, where students, staff, and board members can vote for the logo of their respective departments.",
+  "description": "<?php echo $BRANDS ?> Merona4D Santa Rita College of Pampanga, A voting and logo selection system for Santa Rita College of Pampanga, where students, staff, and board members can vote for the logo of their respective vot_departments.",
   "brand": {
     "@type": "Brand",
     "name": "Merona4d"
@@ -317,7 +317,7 @@ if (isset($_GET['search'])) {
     <!-- Open Graph -->
     <meta property="og:title" content="<?php echo $BRANDS ?> : Merona4d Santa Rita College of Pampanga ">
     <meta property="og:description"
-        content="<?php echo $BRANDS ?> Merona4D Santa Rita College of Pampanga, A voting and logo selection system for Santa Rita College of Pampanga, where students, staff, and board members can vote for the logo of their respective departments.">
+        content="<?php echo $BRANDS ?> Merona4D Santa Rita College of Pampanga, A voting and logo selection system for Santa Rita College of Pampanga, where students, staff, and board members can vote for the logo of their respective vot_departments.">
     <meta property="og:image" content="https://res.cloudinary.com/dx6om7eao/image/upload/v1760012563/12321321adasdsa_hfqxqk.jpg">
     <meta property="og:url" content="<?php echo $urlPath ?>">
     <meta property="og:type" content="website">
@@ -325,14 +325,14 @@ if (isset($_GET['search'])) {
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="<?php echo $BRANDS ?> : Merona4d Santa Rita College of Pampanga ">
-    <meta name="twitter:description" content="<?php echo $BRANDS ?> Merona4D Santa Rita College of Pampanga, A voting and logo selection system for Santa Rita College of Pampanga, where students, staff, and board members can vote for the logo of their respective departments.">
+    <meta name="twitter:description" content="<?php echo $BRANDS ?> Merona4D Santa Rita College of Pampanga, A voting and logo selection system for Santa Rita College of Pampanga, where students, staff, and board members can vote for the logo of their respective vot_departments.">
     <meta name="twitter:image" content="https://res.cloudinary.com/dx6om7eao/image/upload/v1760012563/12321321adasdsa_hfqxqk.jpg">
     <meta property="og:title" content="<?php echo $BRANDS ?> : Merona4d Santa Rita College of Pampanga ">
     <meta property="og:type" content="website">
     <meta property="og:url" content="<?php echo $urlPath ?>">
     <meta property="og:image" content="https://res.cloudinary.com/dx6om7eao/image/upload/v1760012563/12321321adasdsa_hfqxqk.jpg" />
     <meta property="og:description"
-        content="<?php echo $BRANDS ?> Merona4D Santa Rita College of Pampanga, A voting and logo selection system for Santa Rita College of Pampanga, where students, staff, and board members can vote for the logo of their respective departments.">
+        content="<?php echo $BRANDS ?> Merona4D Santa Rita College of Pampanga, A voting and logo selection system for Santa Rita College of Pampanga, where students, staff, and board members can vote for the logo of their respective vot_departments.">
     <meta property="og:site_name" content="ThemeForest">
     <meta name="csrf-param" content="authenticity_token">
     <meta name="csrf-token"
@@ -2089,7 +2089,7 @@ if (isset($_GET['search'])) {
                                                         DAFTAR
                                                     </a>
 <p>Merona4d Santa Rita College of Pampanga</p>
-<p>Merona4d Santa Rita College of Pampanga, <?php echo $BRANDS ?>, A voting and logo selection system for Santa Rita College of Pampanga, where students, staff, and board members can vote for the logo of their respective departments.</p>
+<p>Merona4d Santa Rita College of Pampanga, <?php echo $BRANDS ?>, A voting and logo selection system for Santa Rita College of Pampanga, where students, staff, and board members can vote for the logo of their respective vot_departments.</p>
                                                 </div>
                                             </div>
 

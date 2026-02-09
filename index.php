@@ -34,11 +34,16 @@
             --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         /* Animated background orbs */
@@ -1097,13 +1102,15 @@
         /* Animation classes */
         .fade-in {
             opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.6s ease, transform 0.6s ease;
+            transform: translateY(15px) translateZ(0);
+            transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                        transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+            will-change: opacity, transform;
         }
 
         .fade-in.visible {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(0) translateZ(0);
         }
     </style>
     <link
@@ -1124,9 +1131,9 @@
                 </div>
             </a>
             <div>
-                <a href="login.php" class="nav-btn login">
+                <button onclick="openLoginModal()" class="nav-btn login">
                     <i class="fas fa-sign-in-alt"></i> Login
-                </a>
+                </button>
             </div>
         </div>
     </nav>
@@ -1566,10 +1573,10 @@
             <h2 class="section-title"></h2>
             <div class="carousel-container">
                 <div class="carousel-slide">
-                    <img src="logo/srcfront.jpg" alt="SRC Highlight 1">
-                    <img src="logo/srcfrontlogo.jpg" alt="SRC Highlight 2">
-                    <img src="logo/dome.jpg" alt="SRC Highlight 3">
-                    <img src="logo/srccdome.jpg" alt="SRC Highlight 4">
+                    <img src="logo/srcfront.jpg" alt="SRC Highlight 1" loading="lazy">
+                    <img src="logo/srcfrontlogo.jpg" alt="SRC Highlight 2" loading="lazy">
+                    <img src="logo/dome.jpg" alt="SRC Highlight 3" loading="lazy">
+                    <img src="logo/srccdome.jpg" alt="SRC Highlight 4" loading="lazy">
                 </div>
                 <button class="carousel-btn prev">❮</button>
                 <button class="carousel-btn next">❯</button>
@@ -1590,7 +1597,7 @@
                         <div class="logo-title">Elementary Department</div>
                         <div style="display: flex; gap: 10px; align-items: center;">
 
-                            
+
                         </div>
                     </div>
                 </div>
@@ -1605,7 +1612,7 @@
                         <div class="logo-title">Integrated High School</div>
                         <div style="display: flex; gap: 10px; align-items: center;">
 
-                            
+
                         </div>
                     </div>
                 </div>
@@ -1619,7 +1626,7 @@
                         <div class="logo-title">College of Computer Studies</div>
                         <div style="display: flex; gap: 10px; align-items: center;">
 
-                            
+
                         </div>
                     </div>
                 </div>
@@ -1633,7 +1640,7 @@
                         <div class="logo-title">College of Business Studies</div>
                         <div style="display: flex; gap: 10px; align-items: center;">
 
-                            
+
                         </div>
                     </div>
                 </div>
@@ -1647,7 +1654,7 @@
                         <div class="logo-title">College of Education</div>
                         <div style="display: flex; gap: 10px; align-items: center;">
 
-                            
+
                         </div>
                     </div>
                 </div>
@@ -1700,10 +1707,7 @@
                     Santa Rita College of Pampanga
                 </p>
                 <div class="footer-actions">
-                    <a href="../src_votingsystem/admin/login.php" class="footer-admin-btn">
-                        <i class="fas fa-user-shield"></i> Admin Login
-                    </a>
-                    <a href="../src_votingsystem/login.php" class="footer-student-register"></a>
+                    
                 </div>
             </div>
 
@@ -1795,30 +1799,324 @@
         const nextBtn = document.querySelector('.carousel-btn.next');
 
         let counter = 0;
+        let isTransitioning = false;
 
         function showSlide(index) {
+            if (isTransitioning) return;
+            isTransitioning = true;
+            
             if (index >= images.length) counter = 0;
-            if (index < 0) counter = images.length - 1;
+            else if (index < 0) counter = images.length - 1;
+            else counter = index;
+            
+            slide.style.transition = 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
             slide.style.transform = `translateX(${-counter * 100}%)`;
+            
+            setTimeout(() => {
+                isTransitioning = false;
+            }, 600);
         }
 
         nextBtn.addEventListener('click', () => {
-            counter++;
-            showSlide(counter);
+            showSlide(counter + 1);
         });
 
         prevBtn.addEventListener('click', () => {
-            counter--;
-            showSlide(counter);
+            showSlide(counter - 1);
         });
 
-        // Auto-slide every 4 seconds
-        setInterval(() => {
-            counter++;
-            showSlide(counter);
-        }, 4000);
+        // Touch support for carousel
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        slide.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        slide.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+            if (touchStartX - touchEndX > 50) showSlide(counter + 1);
+            if (touchEndX - touchStartX > 50) showSlide(counter - 1);
+        }
+
+        // Auto-slide every 5 seconds
+        let autoSlide = setInterval(() => {
+            showSlide(counter + 1);
+        }, 5000);
+
+        // Reset timer on manual interaction
+        const resetTimer = () => {
+            clearInterval(autoSlide);
+            autoSlide = setInterval(() => {
+                showSlide(counter + 1);
+            }, 5000);
+        };
+
+        [prevBtn, nextBtn].forEach(btn => btn.addEventListener('click', resetTimer));
+        slide.addEventListener('touchend', resetTimer);
     </script>
 
+    <!-- Login Selection Modal -->
+    <div id="loginModal" class="login-modal">
+        <div class="login-modal-overlay" onclick="closeLoginModal()"></div>
+        <div class="login-modal-content">
+            <button class="modal-close" onclick="closeLoginModal()">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <div class="modal-header">
+                <div class="modal-icon-header">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Welcome Back</h3>
+                <p>Please select your login portal</p>
+            </div>
+
+            <div class="login-options-grid">
+                <a href="login.php" class="login-option-card">
+                    <div class="option-icon student">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div class="option-text">
+                        <h4>Login as Student</h4>
+                        <p>Access your student voting portal</p>
+                    </div>
+                    <i class="fas fa-chevron-right arrow-icon"></i>
+                </a>
+
+                <a href="admin/login.php" class="login-option-card">
+                    <div class="option-icon admin">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="option-text">
+                        <h4>Login as Admin</h4>
+                        <p>Department & System Management</p>
+                    </div>
+                    <i class="fas fa-chevron-right arrow-icon"></i>
+                </a>
+            </div>
+
+            <div class="modal-footer-note">
+                <p>Protected by Secure Authentication System</p>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Login Modal Styling */
+        .login-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .login-modal.active {
+            display: flex;
+        }
+
+        .login-modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .login-modal-content {
+            position: relative;
+            width: 90%;
+            max-width: 500px;
+            background: #1E293B;
+            border-radius: 28px;
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            z-index: 2001;
+            transform: scale(0.9);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .login-modal.active .login-modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: #94A3B8;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #EF4444;
+            transform: rotate(90deg);
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .modal-icon-header {
+            width: 64px;
+            height: 64px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: #3B82F6;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.3);
+        }
+
+        .modal-header h3 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            color: #F8FAFC;
+        }
+
+        .modal-header p {
+            color: #94A3B8;
+            font-size: 0.95rem;
+        }
+
+        .login-options-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .login-option-card {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s;
+            gap: 20px;
+        }
+
+        .login-option-card:hover {
+            background: rgba(59, 130, 246, 0.08);
+            border-color: rgba(59, 130, 246, 0.3);
+            transform: translateX(5px);
+        }
+
+        .option-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .option-icon.student {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10B981;
+        }
+
+        .option-icon.admin {
+            background: rgba(99, 102, 241, 0.1);
+            color: #6366F1;
+        }
+
+        .option-text {
+            flex-grow: 1;
+        }
+
+        .option-text h4 {
+            color: #F8FAFC;
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .option-text p {
+            color: #94A3B8;
+            font-size: 0.85rem;
+        }
+
+        .arrow-icon {
+            color: #475569;
+            font-size: 0.9rem;
+            transition: transform 0.2s;
+        }
+
+        .login-option-card:hover .arrow-icon {
+            transform: translateX(3px);
+            color: #3B82F6;
+        }
+
+        .modal-footer-note {
+            text-align: center;
+            margin-top: 30px;
+            color: #475569;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+
+    <script>
+        function openLoginModal() {
+            const modal = document.getElementById('loginModal');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLoginModal() {
+            const modal = document.getElementById('loginModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Close modal on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLoginModal();
+        });
+    </script>
 </body>
 
 </html>

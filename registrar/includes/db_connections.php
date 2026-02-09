@@ -1,44 +1,24 @@
 <?php
-// Tiyakin na ang file na ito ay tinatawag mong `config.php` o `db_connections.php`
-// at ito ang ginagamit mo sa `require_once`
+// Unified Database Connections for Registrar
+require_once __DIR__ . '/../../includes/db_connect.php';
 
-$host = 'localhost';
-$username = 'root';
-$password = '';
-// Unified database name
-$dbname = 'src_db';
+// Mapper: Ito ang tulay sa pagitan ng Department Name sa CSV at ng Database Name.
+// Lahat ay gumagamit na ngayon ng unified production database: 'srceduph_src_db'
+$dbname = 'srceduph_src_db';
 
-// ========================================================================= //
-// ITO ANG KRITIKAL NA DAGDAG
-// ========================================================================= //
-// Mapper: Ito ang tulay sa pagitan ng Department Name sa CSV at ng Database Name (ngayon lahat ay sa src_db na).
-// Tiyaking EKSATONG-EKSATO ang mga pangalan ng department dito sa kung ano ang
-// nakasulat sa iyong CSV file. Case-sensitive ito.
 $department_db_map = [
-    'College of Computer Studies' => 'src_db',
-    'College of Business Studies' => 'src_db',
-    'College of Education'        => 'src_db',
-    'Elementary Department'       => 'src_db',
-    'Integrated High School'      => 'src_db',
-    'College of Engineering'      => 'src_db'
-    // Tandaan: Case-sensitive, 'College of Computer Studies' ay iba sa 'college of computer studies'
+    'College of Computer Studies' => $dbname,
+    'College of Business Studies' => $dbname,
+    'College of Education' => $dbname,
+    'Elementary Department' => $dbname,
+    'Integrated High School' => $dbname,
+    'College of Engineering' => $dbname
 ];
 
-
-// ========================================================================= //
-// ANG IYONG EXISTING CODE AY TAMA NA
-// ========================================================================= //
-// Single PDO connection to unified src_db
+// $pdo is already created in the required db_connect.php
 $connections = [];
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    // Store under src_db key for mapping usage
-    $connections['src_db'] = $pdo;
-} catch (PDOException $e) {
-    die("Connection to database '$dbname' failed: " . $e->getMessage());
-}
+$connections[$dbname] = $pdo;
 
-// Ang $connections['src_db'] at $department_db_map array ay parehong handa na
+// Ang $connections[$dbname] at $department_db_map array ay parehong handa na
 // para gamitin ng import_students.php.
 ?>

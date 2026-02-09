@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../includes/db_connect.php';
 
 if (!isset($_SESSION['admin_id'])) {
@@ -15,12 +14,12 @@ if (strlen($search) < 2) {
 
 try {
     // Get active election
-    $active_election_id = $pdo->query("SELECT id FROM elections WHERE is_active = 1")->fetchColumn();
+    $active_election_id = $pdo->query("SELECT id FROM vot_elections WHERE is_active = 1")->fetchColumn();
 
     // Get current candidates names to exclude
     $current_candidates = [];
     if ($active_election_id) {
-        $stmt = $pdo->prepare("SELECT first_name, last_name FROM candidates WHERE election_id = ?");
+        $stmt = $pdo->prepare("SELECT first_name, last_name FROM vot_candidates WHERE election_id = ?");
         $stmt->execute([$active_election_id]);
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $current_candidates[] = strtolower($row['first_name'] . ' ' . $row['last_name']);
@@ -46,7 +45,7 @@ try {
         }
 
         // Check past candidacy (excluding current election)
-        $c_stmt = $pdo->prepare("SELECT position FROM candidates 
+        $c_stmt = $pdo->prepare("SELECT position FROM vot_candidates 
                                  WHERE first_name = ? AND last_name = ? 
                                  AND election_id != ? 
                                  ORDER BY id DESC LIMIT 1");

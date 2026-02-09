@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 
@@ -19,7 +18,7 @@ try {
     $table_exists = $pdo->query("SHOW TABLES LIKE 'elections'")->fetchColumn();
 
     if ($table_exists) {
-        $active_election_id = $pdo->query("SELECT id FROM elections WHERE is_active = 1")->fetchColumn();
+        $active_election_id = $pdo->query("SELECT id FROM vot_elections WHERE is_active = 1")->fetchColumn();
     } else {
         // If no elections table, use a default value (backward compatibility)
         $active_election_id = 1; // Default election ID
@@ -63,16 +62,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_candidate'])) {
         if (empty($error)) {
             try {
                 // Check if election_id column exists in candidates table
-                $column_exists = $pdo->query("SHOW COLUMNS FROM candidates LIKE 'election_id'")->fetchColumn();
+                $column_exists = $pdo->query("SHOW COLUMNS FROM vot_candidates LIKE 'election_id'")->fetchColumn();
 
                 if ($column_exists) {
-                    $stmt = $pdo->prepare("INSERT INTO candidates 
+                    $stmt = $pdo->prepare("INSERT INTO vot_candidates 
                         (first_name, middle_name, last_name, year, section, position, platform, photo_path, election_id) 
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([$first_name, $middle_name, $last_name, $year, $section, $position, $platform, $photo_path, $active_election_id]);
                 } else {
                     // If no election_id column, use the old query
-                    $stmt = $pdo->prepare("INSERT INTO candidates 
+                    $stmt = $pdo->prepare("INSERT INTO vot_candidates 
                         (first_name, middle_name, last_name, year, section, position, platform, photo_path) 
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([$first_name, $middle_name, $last_name, $year, $section, $position, $platform, $photo_path]);
@@ -122,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_candidate'])) 
 
     if (empty($error)) {
         try {
-            $stmt = $pdo->prepare("UPDATE candidates SET 
+            $stmt = $pdo->prepare("UPDATE vot_candidates SET 
                 first_name = ?, middle_name = ?, last_name = ?, 
                 year = ?, section = ?, position = ?, 
                 platform = ?, photo_path = ? 
@@ -139,14 +138,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_candidate'])) 
 $candidates = [];
 try {
     // Check if election_id column exists
-    $column_exists = $pdo->query("SHOW COLUMNS FROM candidates LIKE 'election_id'")->fetchColumn();
+    $column_exists = $pdo->query("SHOW COLUMNS FROM vot_candidates LIKE 'election_id'")->fetchColumn();
 
     if ($column_exists && $active_election_id) {
-        $stmt = $pdo->prepare("SELECT * FROM candidates WHERE election_id = :election_id ORDER BY id DESC");
+        $stmt = $pdo->prepare("SELECT * FROM vot_candidates WHERE election_id = :election_id ORDER BY id DESC");
         $stmt->execute(['election_id' => $active_election_id]);
     } else {
         // If no election_id column or no active election, get all candidates
-        $stmt = $pdo->prepare("SELECT * FROM candidates ORDER BY id DESC");
+        $stmt = $pdo->prepare("SELECT * FROM vot_candidates ORDER BY id DESC");
         $stmt->execute();
     }
     $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -1337,7 +1336,7 @@ try {
                         <h3><i class="fas fa-list-ul"></i> Current Candidates (<span
                                 id="candidate-count"><?php echo count($candidates); ?></span>)</h3>
                         <div class="search-box">
-                            <input type="text" placeholder="Search candidates..." id="search-candidates">
+                            <input type="text" placeholder="Search vot_candidates..." id="search-candidates">
                             <i class="fas fa-search"></i>
                         </div>
                     </div>
@@ -1374,9 +1373,9 @@ try {
                                             <tr class="candidate-row">
                                                 <td class="photo-col">
                                                     <div class="candidate-photo">
-                                                        <img src="../<?php echo htmlspecialchars($candidate['photo_path']); ?>"
+                                                        <img src="<?php echo fixCandidatePhotoPath($candidate['photo_path'], '../'); ?>"
                                                             alt="<?php echo htmlspecialchars($candidate['first_name'] . ' ' . $candidate['last_name']); ?>"
-                                                            onerror="this.src='../pic/default-avatar.png'">
+                                                            onerror="this.src='../logo/srclogo.png'">
                                                     </div>
                                                 </td>
                                                 <td data-label="Name">
@@ -1434,7 +1433,8 @@ try {
                             <div class="table-info">Showing <span
                                     id="showing-count"><?php echo count($candidates); ?></span> of
                                 <?php echo count($candidates); ?>
-                                candidate<?php echo count($candidates) != 1 ? 's' : ''; ?></div>
+                                candidate<?php echo count($candidates) != 1 ? 's' : ''; ?>
+                            </div>
                             <div class="pagination">...</div>
                         </div>
                     </div>

@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once 'includes/db_connect.php';
 require_once 'includes/functions.php';
 
@@ -9,7 +8,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// 2. Fetch all student details using JOINs for course and department names
+// 2. Fetch all student details using JOINs for course and departments names
 $student_id = $_SESSION['user_id'];
 $user = null;
 try {
@@ -19,8 +18,8 @@ try {
             c.course_name,
             d.department_name
         FROM students s
-        LEFT JOIN course c ON s.course_id = c.course_id
-        LEFT JOIN department d ON s.department_id = d.department_id
+        LEFT JOIN courses c ON s.course_id = c.course_id
+        LEFT JOIN vot_departments d ON s.department_id = d.department_id
         WHERE s.student_id = ?
     ");
     $stmt->execute([$student_id]);
@@ -39,7 +38,7 @@ if (!$user) {
 $has_voted = (bool) $user['has_voted'];
 
 // Check for the latest concluded election to show celebration
-$stmt_concluded = $pdo->query("SELECT id, title, end_datetime FROM elections WHERE is_active = 0 AND end_datetime IS NOT NULL ORDER BY end_datetime DESC LIMIT 1");
+$stmt_concluded = $pdo->query("SELECT id, title, end_datetime FROM vot_elections WHERE is_active = 0 AND end_datetime IS NOT NULL ORDER BY end_datetime DESC LIMIT 1");
 $latest_concluded = $stmt_concluded->fetch();
 $show_celebration = false;
 if ($latest_concluded) {
@@ -111,8 +110,9 @@ if ($latest_concluded) {
                             <p style="margin: 5px 0 0 0; opacity: 0.9;">The election
                                 "<?php echo htmlspecialchars($latest_concluded['title']); ?>" has ended. Check the results
                                 now!</p>
-                            <!-- Note: User might need to navigate to department specific resultview -->
-                            <p style="margin-top: 5px; font-size: 0.8rem; opacity: 0.8;">Visit your department portal to see
+                            <!-- Note: User might need to navigate to departments specific resultview -->
+                            <p style="margin-top: 5px; font-size: 0.8rem; opacity: 0.8;">Visit your departments portal to
+                                see
                                 the full results.</p>
                         </div>
                         <div style="font-size: 2.5rem;">✨</div>
@@ -183,7 +183,7 @@ if ($latest_concluded) {
                             <span class="value"><?php echo htmlspecialchars($user['email']); ?></span>
                         </div>
                         <div class="detail-item">
-                            <span class="label">Department</span>
+                            <span class="label">departments</span>
                             <span
                                 class="value"><?php echo htmlspecialchars($user['department_name'] ?? 'Not Assigned'); ?></span>
                         </div>

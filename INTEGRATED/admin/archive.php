@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 
@@ -10,7 +9,7 @@ if (!isset($_SESSION['admin_id'])) {
 
 // Fetch all archived elections (inactive)
 try {
-    $stmt = $pdo->prepare("SELECT * FROM elections WHERE is_active = 0 ORDER BY created_at DESC");
+    $stmt = $pdo->prepare("SELECT * FROM vot_elections WHERE is_active = 0 ORDER BY created_at DESC");
     $stmt->execute();
     $archived_elections = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -188,9 +187,11 @@ try {
             font-weight: 500;
         }
     </style>
-</head>
+
+    <link rel="stylesheet" href="../../assets/css/mobile_base.css"></head>
 
 <body>
+<?php if (function_exists('renderMobileTopBar')) renderMobileTopBar('Voting System'); ?>
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -306,6 +307,8 @@ try {
         setInterval(updateClock, 1000);
         updateClock();
     </script>
+
+<?php if (function_exists('renderMobileBottomNav')) renderMobileBottomNav('admin'); ?>
 </body>
 
 </html>

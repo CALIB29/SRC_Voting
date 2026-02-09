@@ -1,5 +1,8 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+  session_set_cookie_params(['path' => '/']);
+  session_start();
+}
 require_once 'includes/db_connect.php';
 require_once 'includes/functions.php';
 
@@ -8,16 +11,16 @@ if (!isset($_SESSION['user_id'])) {
   exit;
 }
 
-// ------ LOGIC 1: Kunin ang ID ng kasalukuyang active na election o ang huling tapos na. ------
-$stmt_active = $pdo->query("SELECT id, title, is_active FROM elections WHERE is_active = 1 LIMIT 1");
+// ------ LOGIC 1: Get the ID of the currently active election or the last ended one. ------
+$stmt_active = $pdo->query("SELECT id, title, is_active FROM vot_elections WHERE is_active = 1 LIMIT 1");
 $active_election = $stmt_active->fetch();
 $active_election_id = $active_election ? $active_election['id'] : null;
 $election_title = "Election Results";
 $is_history = false;
 
 if (!$active_election_id) {
-  // Kunin ang huling tapos na election
-  $stmt_latest = $pdo->query("SELECT id, title FROM elections WHERE is_active = 0 AND end_datetime IS NOT NULL ORDER BY end_datetime DESC LIMIT 1");
+  // Get the last ended election
+  $stmt_latest = $pdo->query("SELECT id, title FROM vot_elections WHERE is_active = 0 AND end_datetime IS NOT NULL ORDER BY end_datetime DESC LIMIT 1");
   $latest_election = $stmt_latest->fetch();
   if ($latest_election) {
     $active_election_id = $latest_election['id'];
@@ -33,21 +36,20 @@ $stmt->execute([$user_id]);
 $user = $stmt->fetch();
 
 
-// ------ LOGIC 2: Kunin lang ang mga kandidato para sa ACTIVE na election (with tie-breaker logic). ------
+// ------ LOGIC 2: Get candidates for the ACTIVE election (with tie-breaker logic). ------
 $candidates = [];
 if ($active_election_id) {
   $stmt_candidates = $pdo->prepare("
         SELECT c.*, 
-        (SELECT MIN(vote_id) FROM votes WHERE candidate_id = c.id) as first_vote_id
-        FROM candidates c
+        (SELECT MIN(vote_id) FROM vot_votes WHERE candidate_id = c.id) as first_vote_id
+        FROM vot_candidates c
         WHERE c.election_id = :election_id
         ORDER BY 
             CASE position
                 WHEN 'President' THEN 1 WHEN 'Vice President' THEN 2 WHEN 'Secretary' THEN 3 WHEN 'Treasurer' THEN 4
                 WHEN 'Auditor' THEN 5 WHEN 'PRO' THEN 6 WHEN 'Business Manager' THEN 7 WHEN 'Sgt. at Arms' THEN 8
                 ELSE 9
-            END,
-            votes DESC,
+            END, votes DESC,
             first_vote_id ASC
     ");
   $stmt_candidates->execute(['election_id' => $active_election_id]);
@@ -62,13 +64,13 @@ foreach ($candidates as $candidate) {
 }
 
 
-// ------ LOGIC 3: Kunin lang ang boto ng user para sa ACTIVE na election. ------
+// ------ LOGIC 3: Get user's vote for the ACTIVE election. ------
 $user_voted_candidates = [];
 if ($active_election_id) {
   $stmt_votes = $pdo->prepare("
         SELECT v.candidate_id, c.position
-        FROM votes v
-        JOIN candidates c ON v.candidate_id = c.id
+        FROM vot_votes v
+        JOIN vot_candidates c ON v.candidate_id = c.id
         WHERE v.user_id = ? AND v.election_id = ?
     ");
   $stmt_votes->execute([$user_id, $active_election_id]);
@@ -86,383 +88,312 @@ if ($active_election_id) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>User Dashboard | Santa Rita College</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <title>Election Results | Santa Rita College</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/student_premium.css">
+  <link rel="stylesheet" href="../assets/css/mobile_base.css">
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <!-- ANG IYONG BUONG CSS - HINDI GINALAW -->
   <style>
-    :root {
-      --primary: #3B82F6;
-      --primary-light: #eff6ff;
-      --primary-dark: #2563eb;
-      --secondary: #6366f1;
-      --success: #10b981;
-      --success-dark: #059669;
-      --info: #4895ef;
-      --light: #f8f9fa;
-      --dark: #212529;
-      --gray: #6c757d;
-      --light-gray: #e9ecef;
-      --border-radius: 12px;
-      --border-radius-sm: 8px;
-      --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      --box-shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
-      --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-      --percentage-bar: #4361ee;
-      --percentage-bar-bg: #e9ecef;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    }
-
-    body {
-      background: #f5f7fb;
-      color: var(--dark);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    .dashboard-container {
-      display: flex;
-      min-height: 100vh;
-    }
-
-    .sidebar {
-      width: 280px;
-      background: white;
-      box-shadow: 2px 0 15px rgba(0, 0, 0, 0.03);
-      padding: 20px 0;
-      position: fixed;
-      height: 100vh;
-      z-index: 200;
-      transition: var(--transition);
-      left: 0;
-    }
-
-    .logo {
-      padding: 20px;
-      text-align: center;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-      margin-bottom: 20px;
-    }
-
-    .logo img {
-      max-width: 100%;
-      height: auto;
-      max-height: 70px;
-      margin-bottom: 10px;
-    }
-
-    .logo h5 {
-      color: var(--primary);
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-top: 5px;
-    }
-
-    .sidebar ul {
-      list-style: none;
-      padding: 0 15px;
-    }
-
-    .sidebar li a {
-      display: flex;
-      align-items: center;
-      padding: 12px 20px;
-      color: var(--gray);
-      text-decoration: none;
-      border-radius: var(--border-radius-sm);
-      margin-bottom: 5px;
-      font-weight: 500;
-    }
-
-    .sidebar li a:hover {
-      background: var(--primary-light);
-      color: var(--primary);
-      transform: translateX(3px);
-    }
-
-    .sidebar li a i {
-      margin-right: 12px;
-      width: 20px;
-      text-align: center;
-      font-size: 1.1rem;
-    }
-
-    .main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      margin-left: 280px;
-      transition: var(--transition);
-    }
-
-    .top-bar {
-      background: white;
-      padding: 18px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.03);
-      position: sticky;
-      top: 0;
-      z-index: 150;
-    }
-
-    .page-title {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--dark);
-      display: flex;
-      align-items: center;
-    }
-
-    .menu-toggle {
-      background: none;
-      border: none;
-      color: var(--dark);
-      font-size: 1.5rem;
-      cursor: pointer;
-      margin-right: 15px;
-      display: none;
-    }
-
-    .user-info {
-      display: flex;
-      align-items: center;
-    }
-
-    .user-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--primary);
+    .page-header {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: var(--radius-xl);
+      padding: 2rem;
       color: white;
+      margin-bottom: 2.5rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+    }
+
+    .page-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+      animation: rotate 20s linear infinite;
+    }
+
+    @keyframes rotate {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .header-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .spotlight-section {
+      margin-bottom: 3rem;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+      color: var(--text-main);
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .scroll-container {
+      display: flex;
+      gap: 1.5rem;
+      overflow-x: auto;
+      padding-bottom: 1.5rem;
+      scrollbar-width: thin;
+    }
+
+    .spotlight-card {
+      flex: 0 0 240px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      text-align: center;
+      position: relative;
+      transition: var(--transition);
+    }
+
+    .spotlight-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--primary);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .winner-badge {
+      background: #F59E0B;
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      z-index: 5;
+    }
+
+    .spotlight-img {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--primary);
+      margin-bottom: 1rem;
+      padding: 2px;
+      background: var(--bg-card);
+    }
+
+    .spotlight-name {
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.25rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .spotlight-position {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.75rem;
+    }
+
+    .spotlight-votes {
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--primary);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
       font-weight: 600;
-      margin-right: 15px;
-      font-size: 1rem;
+      display: inline-block;
     }
 
-    .logout-btn {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: var(--border-radius-sm);
-      text-decoration: none;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-    }
-
-    .logout-btn i {
-      margin-right: 8px;
-    }
-
-    .content-area {
-      padding: 30px;
-      flex: 1;
-    }
-
-    .welcome-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 30px;
-      flex-wrap: wrap;
-      gap: 15px;
-    }
-
-    .time-date {
-      background: white;
-      padding: 12px 20px;
-      border-radius: var(--border-radius);
-      box-shadow: var(--box-shadow);
-      font-weight: 500;
-      color: var(--gray);
-    }
-
-    .position-results {
-      background: white;
-      border-radius: var(--border-radius);
-      padding: 1.5rem;
-      box-shadow: var(--box-shadow);
+    .results-table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
       margin-bottom: 2rem;
     }
 
-    .position-results h3 {
-      font-size: 1.25rem;
-      color: var(--dark);
-      margin-bottom: 1.5rem;
-      padding-bottom: 0.75rem;
-      border-bottom: 1px solid var(--light-gray);
+    .table-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(59, 130, 246, 0.05);
     }
 
-    .table-container {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    table {
+    .results-table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 600px;
     }
 
-    th,
-    td {
-      padding: 1rem;
+    .results-table th {
       text-align: left;
-      border-bottom: 1px solid var(--light-gray);
+      padding: 1rem 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .results-table td {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-main);
       vertical-align: middle;
     }
 
-    th {
-      background: var(--light);
-      color: var(--gray);
-      font-weight: 600;
-      text-transform: uppercase;
-      font-size: 0.75rem;
+    .results-table tr:last-child td {
+      border-bottom: none;
     }
 
-    tr:hover {
-      background-color: rgba(79, 70, 229, 0.03);
-    }
-
-    .candidate-info {
+    .candidate-cell {
       display: flex;
       align-items: center;
       gap: 1rem;
     }
 
-    .candidate-photo {
-      width: 50px;
-      height: 50px;
+    .table-img {
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid var(--light-gray);
     }
 
-    .percentage-bar-container {
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
+    .progress-container {
       width: 100%;
-    }
-
-    .percentage-bar-wrapper {
-      flex-grow: 1;
-      background-color: var(--percentage-bar-bg);
-      border-radius: 6px;
-      height: 12px;
-      position: relative;
+      height: 8px;
+      background: var(--border);
+      border-radius: 10px;
       overflow: hidden;
+      margin-top: 5px;
     }
 
-    .percentage-bar {
+    .progress-bar {
       height: 100%;
-      background: var(--percentage-bar);
-      border-radius: 6px;
-      transition: width 0.5s ease;
-      min-width: 0;
+      background: var(--primary);
+      border-radius: 10px;
     }
 
-    .percentage-value {
-      color: var(--dark);
-      font-weight: 600;
-      min-width: 50px;
-      text-align: right;
-      font-size: 0.9rem;
+    .voted-highlight {
+      background: rgba(16, 185, 129, 0.05);
     }
 
     .voted-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      background: var(--success);
-      color: white;
-      font-size: 0.8rem;
-      font-weight: 600;
-      border-radius: 6px;
-      margin-left: 10px;
-    }
-
-    .voted-row {
-      border-left: 4px solid var(--success);
-      background: linear-gradient(90deg, rgba(76, 201, 240, 0.04), transparent);
-    }
-
-    .overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.4);
-      z-index: 100;
-    }
-
-    .overlay.active {
-      display: block;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-left: 8px;
     }
 
     @media (max-width: 768px) {
-      .menu-toggle {
+      .page-header {
+        padding: 1.5rem;
+        text-align: center;
+      }
+
+      .header-content {
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .results-table thead {
+        display: none;
+      }
+
+      .results-table tr {
         display: block;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border);
       }
 
-      .sidebar {
-        left: -280px;
-        top: 0;
-        position: fixed;
-        bottom: 0;
-        z-index: 300;
+      .results-table td {
+        display: block;
+        padding: 0.5rem 0;
+        border: none;
+        text-align: right;
       }
 
-      .sidebar.active {
-        left: 0;
+      .results-table td:first-child {
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
       }
 
-      .main-content {
-        margin-left: 0;
+      .candidate-cell {
+        justify-content: flex-end;
       }
 
-      .top-bar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 250;
-      }
-
-      .content-area {
-        margin-top: 80px;
+      .results-table td::before {
+        content: attr(data-label);
+        float: left;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        margin-top: 5px;
       }
     }
   </style>
 </head>
 
 <body>
+  <?php if (function_exists('renderMobileTopBar'))
+    renderMobileTopBar('Results'); ?>
+
   <div class="dashboard-container">
     <!-- Sidebar -->
     <div class="sidebar">
-      <div class="logo">
-        <img src="pic/srclogo.png" alt="Santa Rita College Logo">
-        <h5>Santa Rita College</h5>
+      <div class="sidebar-header">
+        <img src="pic/srclogo.png" alt="Logo">
+        <div class="sidebar-brand">
+          <h5>Santa Rita College</h5>
+          <span
+            class="dept-badge"><?php echo isset($_SESSION['departments']) ? str_replace([' VOTING', '_', '-'], '', $_SESSION['departments']) : 'Voting System'; ?></span>
+        </div>
       </div>
-      <ul>
-        <li><a href="dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-        <li><a href="vote.php"><i class="fas fa-vote-yea"></i> Vote Now</a></li>
-        <li><a href="view.php"><i class="fas fa-users"></i> View Candidates</a></li>
+      <ul class="nav-menu">
+        <li class="nav-item"><a href="dashboard.php" class="nav-link"><i class="fas fa-tachometer-alt"></i>
+            <span>Dashboard</span></a></li>
+        <li class="nav-item"><a href="vote.php" class="nav-link"><i class="fas fa-vote-yea"></i> <span>Vote
+              Now</span></a></li>
+        <li class="nav-item"><a href="view.php" class="nav-link"><i class="fas fa-users"></i> <span>View
+              Candidates</span></a></li>
       </ul>
     </div>
 
@@ -471,191 +402,183 @@ if ($active_election_id) {
       <!-- Top Bar -->
       <div class="top-bar">
         <div class="page-title">
-          <button class="menu-toggle" onclick="toggleSidebar()">
-            <i id="menu-icon" class="fas fa-bars"></i>
-          </button>
-          <?php echo $election_title; ?>
+          <h1>Election Results</h1>
         </div>
-        <div class="user-info">
-          <div class="user-avatar">
-            <?php echo isset($_SESSION['first_name']) ? substr($_SESSION['first_name'], 0, 1) : 'U'; ?>
+        <div class="user-profile">
+          <div class="avatar"><?php echo substr($_SESSION['first_name'], 0, 1); ?></div>
+          <div class="user-meta">
+            <span class="user-name"><?php echo htmlspecialchars($_SESSION['first_name'] ?? 'Student'); ?></span>
+            <a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
           </div>
-          <span><?php echo isset($_SESSION['first_name']) ? htmlspecialchars($_SESSION['first_name']) : 'User'; ?></span>
-          <a href="logout.php" class="logout-btn">
-            <i class="fas fa-sign-out-alt"></i> Logout
-          </a>
         </div>
       </div>
 
       <!-- Content Area -->
       <div class="content-area">
-        <div class="welcome-header">
-          <h2><i class="fas fa-chart-bar" style="color:var(--primary); margin-right:12px;"></i>
-            <?php echo htmlspecialchars($election_title); ?></h2>
-          <div class="time-date">
-            <i class="far fa-calendar-alt"></i> <span id="current-date"></span>
-            <i class="far fa-clock" style="margin-left:15px;"></i> <span id="current-time"></span>
+
+        <div class="page-header">
+          <div class="header-content">
+            <div>
+              <h2 style="margin: 0; font-size: 1.8rem; font-weight: 800;">
+                <?php echo htmlspecialchars($election_title); ?>
+              </h2>
+              <p style="margin: 5px 0 0 0; opacity: 0.9;">
+                <?php echo $is_history ? 'Final results for the concluded election' : 'Live updates of the ongoing election'; ?>
+              </p>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 0.9rem; opacity: 0.8; margin-bottom: 5px;"><i class="far fa-clock"></i> Last
+                Updated</div>
+              <div style="font-weight: 700; font-size: 1.1rem;"><?php echo date('F j, Y g:i A'); ?></div>
+            </div>
           </div>
         </div>
 
-        <?php if ($is_history): ?>
-          <!-- Celebration Banner for Results History -->
-          <div class="celebration-banner"
-            style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 1.5rem; border-radius: 15px; margin-bottom: 2rem; display: flex; align-items: center; gap: 1.5rem; box-shadow: 0 10px 20px rgba(67, 97, 238, 0.2); animation: slideIn 0.5s ease-out;">
-            <div style="font-size: 2.5rem;">🎉</div>
-            <div style="flex: 1;">
-              <h3 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: white;">Congratulations to the Winners!
-              </h3>
-              <p style="margin: 5px 0 0 0; opacity: 0.9;">The election has concluded successfully. Below are the official
-                final results.</p>
-            </div>
-            <div style="font-size: 2.5rem;">🎊</div>
-          </div>
-          <style>
-            @keyframes slideIn {
-              from {
-                transform: translateY(-20px);
-                opacity: 0;
-              }
-
-              to {
-                transform: translateY(0);
-                opacity: 1;
-              }
-            }
-          </style>
-          <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
-          <script>
-            window.addEventListener('load', () => {
-              const duration = 5 * 1000;
-              const end = Date.now() + duration;
-
-              (function frame() {
-                confetti({
-                  particleCount: 3,
-                  angle: 60,
-                  spread: 55,
-                  origin: { x: 0 },
-                  colors: ['#4361ee', '#3f37c9', '#4cc9f0']
-                });
-                confetti({
-                  particleCount: 3,
-                  angle: 120,
-                  spread: 55,
-                  origin: { x: 1 },
-                  colors: ['#4361ee', '#3f37c9', '#4cc9f0']
-                });
-
-                if (Date.now() < end) {
-                  requestAnimationFrame(frame);
-                }
-              }());
-            });
-          </script>
-        <?php endif; ?>
-
         <?php if (empty($results_by_position)): ?>
-          <div class="position-results text-center p-5">
-            <i class="fas fa-poll fa-3x text-muted mb-3"></i>
-            <h4 class="text-muted">No Election Results Available</h4>
-            <p class="text-muted">The results for the current election are not yet available, or no candidates were
-              listed.</p>
+          <div class="status-card pending">
+            <i class="fas fa-poll"></i>
+            <div class="status-content">
+              <h3>No Results Available</h3>
+              <p>There are no active or past elections available to display yet.</p>
+            </div>
           </div>
         <?php else: ?>
-          <?php foreach ($results_by_position as $position => $position_candidates): ?>
-            <div class="position-results">
-              <h3><?php echo htmlspecialchars($position); ?></h3>
-              <div class="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Rank</th>
-                      <th>Candidate</th>
-                      <th>Status</th>
-                      <th>Vote Percentage</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+
+          <!-- Leaders Spotlight -->
+          <div class="spotlight-section">
+            <div class="section-heading">
+              <i class="fas fa-trophy" style="color: #F59E0B;"></i>
+              <?php echo $is_history ? 'Official Winners' : 'Current Leaders'; ?>
+            </div>
+            <div class="scroll-container">
+              <?php foreach ($results_by_position as $pos => $cands):
+                $leader = $cands[0]; // First one is leader due to sort order
+                if ($leader['votes'] > 0 || !$is_history):
+                  ?>
+                  <div class="spotlight-card">
+                    <?php if ($leader['votes'] > 0): ?>
+                      <div class="winner-badge"><i class="fas fa-crown"></i></div>
+                    <?php endif; ?>
+
                     <?php
-                    $position_total_votes = array_sum(array_column($position_candidates, 'votes'));
-                    $rank = 1;
-                    foreach ($position_candidates as $candidate):
-                      $percentage = ($position_total_votes > 0) ? round(($candidate['votes'] / $position_total_votes) * 100, 2) : 0;
-                      $is_voted = (isset($user_voted_candidates[$position]) && $user_voted_candidates[$position] == $candidate['id']);
-                      ?>
-                      <tr class="<?php echo $is_voted ? 'voted-row' : ''; ?>">
-                        <td><?php echo $rank++; ?></td>
-                        <td>
-                          <div class="candidate-info">
-                            <img src="<?php echo htmlspecialchars($candidate['photo_path']); ?>"
-                              alt="<?php echo htmlspecialchars($candidate['first_name'] . ' ' . $candidate['middle_name'] . ' ' . $candidate['last_name']); ?>"
-                              class="candidate-photo">
-                            <div>
-                              <h4 style="margin-bottom:6px;">
-                                <?php echo htmlspecialchars($candidate['first_name'] . ' ' . $candidate['middle_name'] . ' ' . $candidate['last_name']); ?>
-                              </h4>
-                              <p class="platform" style="color:var(--gray); max-width:350px;">
-                                <?php echo nl2br(htmlspecialchars($candidate['platform'])); ?>
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <?php if ($is_voted): ?>
-                            <span class="voted-badge">Voted</span>
-                          <?php else: ?>
-                            &ndash;
-                          <?php endif; ?>
-                        </td>
-                        <td>
-                          <div class="percentage-bar-container">
-                            <div class="percentage-bar-wrapper">
-                              <div class="percentage-bar" style="width: <?php echo $percentage; ?>%;"></div>
-                            </div>
-                            <span class="percentage-value"><?php echo $percentage; ?>%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    <?php endforeach; ?>
-                  </tbody>
-                </table>
+                    $photo = fixCandidatePhotoPath($leader['photo_path'], '../');
+                    $alt = htmlspecialchars($leader['first_name'] . ' ' . $leader['last_name']);
+                    echo "<img src=\"{$photo}\" class=\"spotlight-img\" alt=\"{$alt}\" onerror=\"this.src='pic/srclogo.png'\">";
+                    ?>
+
+                    <div class="spotlight-position"><?= htmlspecialchars($pos) ?></div>
+                    <h4 class="spotlight-name"><?= htmlspecialchars($leader['first_name'] . ' ' . $leader['last_name']) ?>
+                    </h4>
+
+                    <div class="spotlight-votes">
+                      <?= number_format($leader['votes']) ?> Votes
+                    </div>
+                  </div>
+                <?php endif; endforeach; ?>
+            </div>
+          </div>
+
+          <!-- Detailed Results -->
+          <?php foreach ($results_by_position as $position => $position_candidates):
+            $position_total_votes = array_sum(array_column($position_candidates, 'votes'));
+            ?>
+            <div class="results-table-container">
+              <div class="table-header">
+                <i class="fas fa-user-tie"></i> <?= htmlspecialchars($position) ?>
               </div>
+              <table class="results-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;">#</th>
+                    <th>Candidate</th>
+                    <th style="text-align: right;">Votes</th>
+                    <th style="width: 30%;">Percentage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php
+                  $rank = 1;
+                  foreach ($position_candidates as $candidate):
+                    $percentage = ($position_total_votes > 0) ? round(($candidate['votes'] / $position_total_votes) * 100, 2) : 0;
+                    $is_voted = (isset($user_voted_candidates[$position]) && $user_voted_candidates[$position] == $candidate['id']);
+                    ?>
+                    <tr class="<?= $is_voted ? 'voted-highlight' : '' ?>">
+                      <td data-label="Rank" style="font-weight: 700; color: var(--text-muted);"><?= $rank++ ?></td>
+                      <td data-label="Candidate">
+                        <div class="candidate-cell">
+                          <?php
+                          $candPhoto = fixCandidatePhotoPath($candidate['photo_path'], '../');
+                          echo "<img src=\"{$candPhoto}\" class=\"table-img\" alt=\"\" onerror=\"this.src='pic/srclogo.png'\">";
+                          ?>
+                          <div>
+                            <div style="font-weight: 600; color: var(--text-main);">
+                              <?= htmlspecialchars($candidate['first_name'] . ' ' . $candidate['last_name']) ?>
+                              <?php if ($is_voted): ?>
+                                <span class="voted-badge">Voted</span>
+                              <?php endif; ?>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">
+                              <?= htmlspecialchars($candidate['partylist'] ?? 'Independent') ?>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Votes" style="text-align: right; font-weight: 700; color: var(--primary);">
+                        <?= number_format($candidate['votes']) ?>
+                      </td>
+                      <td data-label="Percentage">
+                        <div
+                          style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; font-size: 0.85rem; font-weight: 600;">
+                          <span><?= $percentage ?>%</span>
+                        </div>
+                        <div class="progress-container">
+                          <div class="progress-bar" style="width: <?= $percentage ?>%;"></div>
+                        </div>
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
             </div>
           <?php endforeach; ?>
+
         <?php endif; ?>
       </div>
     </div>
   </div>
 
-  <!-- Overlay - Hindi Ginalaw -->
-  <div class="overlay" onclick="toggleSidebar()"></div>
-  <!-- JavaScript - Hindi Ginalaw -->
-  <script>
-    function updateDateTime() {
-      const now = new Date();
-      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-      document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', options);
-      let hours = now.getHours();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12 || 12;
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      document.getElementById('current-time').textContent = `${hours}:${minutes} ${ampm}`;
-    }
-    updateDateTime();
-    setInterval(updateDateTime, 60000);
-    function toggleSidebar() {
-      document.querySelector('.sidebar').classList.toggle('active');
-      document.querySelector('.overlay').classList.toggle('active');
-      const icon = document.getElementById('menu-icon');
-      if (document.querySelector('.sidebar').classList.contains('active')) {
-        icon.classList.remove('fa-bars');
-        icon.classList.add('fa-times');
-      } else {
-        icon.classList.remove('fa-times');
-        icon.classList.add('fa-bars');
-      }
-    }
-  </script>
+  <?php if (function_exists('renderMobileBottomNav'))
+    renderMobileBottomNav('student'); ?>
+
+  <?php if ($is_history): ?>
+    <script>
+      window.addEventListener('load', () => {
+        const duration = 5 * 1000;
+        const end = Date.now() + duration;
+
+        (function frame() {
+          confetti({
+            particleCount: 3,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors: ['#3B82F6', '#6366f1', '#10b981']
+          });
+          confetti({
+            particleCount: 3,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors: ['#3B82F6', '#6366f1', '#10b981']
+          });
+
+          if (Date.now() < end) {
+            requestAnimationFrame(frame);
+          }
+        }());
+      });
+    </script>
+  <?php endif; ?>
 </body>
 
 </html>

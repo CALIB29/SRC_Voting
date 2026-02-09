@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 
@@ -17,7 +16,7 @@ $edit_data = null;
 if (isset($_GET['edit_id'])) {
     $edit_id = intval($_GET['edit_id']);
     try {
-        $stmt = $pdo->prepare("SELECT * FROM election_history WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT * FROM vot_election_history WHERE id = ?");
         $stmt->execute([$edit_id]);
         $edit_data = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($edit_data) {
@@ -53,12 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_history'])) {
 
     try {
         if ($edit_id) {
-            $stmt = $pdo->prepare("UPDATE election_history SET fullname=?, position=?, year_section=?, year=?, platforms=?, photo_path=? WHERE id=?");
+            $stmt = $pdo->prepare("UPDATE vot_election_history SET fullname=?, position=?, year_section=?, year=?, platforms=?, photo_path=? WHERE id=?");
             $stmt->execute([$fullname, $position, $year_section, $president_year, $platforms, $photo_path, $edit_id]);
             $success_msg = "Record updated successfully!";
             $history_id = $edit_id;
         } else {
-            $stmt = $pdo->prepare("INSERT INTO election_history (fullname, position, year_section, year, platforms, photo_path) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO vot_election_history (fullname, position, year_section, year, platforms, photo_path) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->execute([$fullname, $position, $year_section, $president_year, $platforms, $photo_path]);
             $success_msg = "Record saved successfully!";
             $history_id = $pdo->lastInsertId();
@@ -79,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_history'])) {
                     $targetFile = $extra_upload_dir . $fileName;
 
                     if (move_uploaded_file($tmp_name, $targetFile)) {
-                        $stmtPhoto = $pdo->prepare("INSERT INTO election_history_photos (history_id, photo_path) VALUES (?, ?)");
+                        $stmtPhoto = $pdo->prepare("INSERT INTO vot_election_history_photos (history_id, photo_path) VALUES (?, ?)");
                         $stmtPhoto->execute([$history_id, $targetFile]);
                     }
                 }
@@ -98,14 +97,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_history'])) {
 if (isset($_GET['delete_id'])) {
     $delete_id = intval($_GET['delete_id']);
     try {
-        $stmt = $pdo->prepare("SELECT photo_path FROM election_history WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT photo_path FROM vot_election_history WHERE id = ?");
         $stmt->execute([$delete_id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($row && !empty($row['photo_path']) && file_exists($row['photo_path'])) {
             unlink($row['photo_path']);
         }
 
-        $stmt = $pdo->prepare("SELECT photo_path FROM election_history_photos WHERE history_id = ?");
+        $stmt = $pdo->prepare("SELECT photo_path FROM vot_election_history_photos WHERE history_id = ?");
         $stmt->execute([$delete_id]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         foreach ($rows as $photoRow) {
@@ -114,7 +113,7 @@ if (isset($_GET['delete_id'])) {
             }
         }
 
-        $stmt = $pdo->prepare("DELETE FROM election_history WHERE id = ?");
+        $stmt = $pdo->prepare("DELETE FROM vot_election_history WHERE id = ?");
         $stmt->execute([$delete_id]);
         $_SESSION['success_msg'] = "Record deleted successfully!";
         header("Location: manage_history.php");
@@ -360,7 +359,7 @@ if (isset($_SESSION['success_msg'])) {
                         </thead>
                         <tbody>
                             <?php
-                            $stmt = $pdo->query("SELECT * FROM election_history ORDER BY id DESC");
+                            $stmt = $pdo->query("SELECT * FROM vot_election_history ORDER BY id DESC");
                             while ($row = $stmt->fetch()):
                                 ?>
                                 <tr style="border-bottom: 1px solid var(--border);">

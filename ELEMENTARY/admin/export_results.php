@@ -5,9 +5,9 @@ require_once '../includes/db_connect.php';
 // Include TCPDF Library
 require_once '../tcpdf/tcpdf.php';
 
-// Fetch election results from candidates table
+// Fetch election results from vot_candidates table
 try {
-    $query = "SELECT * FROM candidates ORDER BY position, votes DESC";
+    $query = "SELECT * FROM vot_candidates ORDER BY position, votes DESC";
     $stmt = $pdo->prepare($query);
     $stmt->execute();
     $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);

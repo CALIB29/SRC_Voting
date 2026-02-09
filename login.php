@@ -1,22 +1,22 @@
 <?php
-session_start();
-require_once 'includes/db_connect.php';
-require_once 'includes/functions.php';
+require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/db_connect.php';
+require_once __DIR__ . '/includes/functions.php';
 
 // Department folder mapping
 $department_map = [
-    1 => 'CCS VOTING',
-    2 => 'CBS VOTING',
-    3 => 'COE VOTING',
-    9 => 'ELEMENTARY',
-    4 => 'INTEGRATED' // Assuming Senior High is in the INTEGRATED folder
+    2 => 'CCSVOTING',
+    4 => 'CBSVOTING',
+    3 => 'COEVOTING',
+    6 => 'ELEMENTARY',
+    5 => 'INTEGRATED' // Assuming Senior High is in the INTEGRATED folder
 ];
 
 // If user is already logged in, try to redirect them
 if (isset($_SESSION['user_id']) && isset($_SESSION['department_id'])) {
     $folder = $department_map[$_SESSION['department_id']] ?? null;
     if ($folder) {
-        header("Location: {$folder}/dashboard.php");
+        header("Location: " . BASE_URL . "$folder/dashboard.php");
         exit;
     }
 }
@@ -31,28 +31,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Please enter both student ID and password.';
     } else {
         try {
-            $stmt = $pdo->prepare("SELECT student_id, first_name, password, is_approved, department_id FROM students WHERE student_id = ?");
+            $stmt = $pdo->prepare("
+                SELECT s.student_id, s.first_name, s.password, s.is_approved, s.department_id, d.department_name 
+                FROM students s 
+                LEFT JOIN departments d ON s.department_id = d.department_id 
+                WHERE s.student_id = ?
+            ");
             $stmt->execute([trim($student_id)]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($user && $password === $user['password']) {
-                if ((int) $user['is_approved'] === 1) {
-                    $_SESSION['user_id'] = $user['student_id'];
-                    $_SESSION['first_name'] = $user['first_name'];
-                    $_SESSION['department_id'] = $user['department_id'];
+            if ($user) {
+                // Support both hashed and plain text passwords for backward compatibility
+                $password_valid = password_verify($password, $user['password']) || $password === $user['password'];
 
-                    $department_folder = $department_map[$user['department_id']] ?? null;
+                if ($password_valid) {
+                    if ((int) $user['is_approved'] === 1) {
+                        $_SESSION['user_id'] = $user['student_id'];
+                        $_SESSION['first_name'] = $user['first_name'];
+                        $_SESSION['department_id'] = $user['department_id'];
+                        $_SESSION['department_name'] = $user['department_name'];
 
-                    if ($department_folder) {
-                        $dashboard_url = "{$department_folder}/dashboard.php";
-                        // Use a robust JS redirect
-                        echo '<script type="text/javascript">window.location.href = "' . $dashboard_url . '";</script>';
-                        exit;
+                        $department_folder = $department_map[$user['department_id']] ?? null;
+
+                        if ($department_folder) {
+                            header("Location: " . BASE_URL . "$department_folder/dashboard.php");
+                            exit;
+                        } else {
+                            $error = 'Your department is not configured correctly. Please contact an administrator.';
+                        }
                     } else {
-                        $error = 'Your department is not configured correctly. Please contact an administrator.';
+                        $error = 'Your account is pending admin approval.';
                     }
                 } else {
-                    $error = 'Your account is pending admin approval.';
+                    $error = 'Invalid student ID or password.';
                 }
             } else {
                 $error = 'Invalid student ID or password.';
@@ -146,14 +157,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         @keyframes float {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(30px, -30px) scale(1.1); }
-            66% { transform: translate(-20px, 20px) scale(0.9); }
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            33% {
+                transform: translate(30px, -30px) scale(1.1);
+            }
+
+            66% {
+                transform: translate(-20px, 20px) scale(0.9);
+            }
         }
 
         @keyframes gradientShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
         }
 
         .container {
@@ -204,8 +232,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
         }
 
         h2 {
@@ -311,7 +346,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: rgba(15, 23, 42, 0.7);
         }
 
-        .input-group input:focus + i.field-icon {
+        .input-group input:focus+i.field-icon {
             color: var(--primary);
         }
 
@@ -355,7 +390,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             filter: brightness(1.1);
         }
 
-        .btn:active { transform: translateY(0); }
+        .btn:active {
+            transform: translateY(0);
+        }
 
         .footer-links {
             margin-top: 1.5rem;
@@ -384,8 +421,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         @media (max-width: 480px) {
-            .container { padding: 1rem; }
-            .login-form { padding: 2rem 1.5rem; }
+            .container {
+                padding: 1rem;
+            }
+
+            .login-form {
+                padding: 2rem 1.5rem;
+            }
         }
     </style>
 </head>
@@ -398,7 +440,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <h2>Student Portal</h2>
             <p class="subtitle">Santa Rita College Voting System</p>
-            
+
             <div class="secure-badge">
                 <i class="fas fa-shield-alt"></i>
                 Secure Access
@@ -414,18 +456,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form action="login.php" method="post">
                 <div class="form-group">
                     <label for="student_id">
-                        <i class="fas fa-user-circle"></i> 
+                        <i class="fas fa-user-circle"></i>
                         Student ID
                     </label>
                     <div class="input-group">
                         <i class="fas fa-envelope field-icon"></i>
-                        <input type="text" id="student_id" name="student_id" required autofocus placeholder="Enter your ID">
+                        <input type="text" id="student_id" name="student_id" required autofocus
+                            placeholder="Enter your ID">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="password">
-                        <i class="fas fa-lock"></i> 
+                        <i class="fas fa-lock"></i>
                         Password
                     </label>
                     <div class="input-group">

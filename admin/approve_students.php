@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 
@@ -40,7 +39,7 @@ try {
     $stmt = $pdo->prepare(
         "SELECT s.student_id, s.first_name, s.middle_name, s.last_name, s.email, c.course_name " .
         "FROM students s " .
-        "JOIN course c ON s.course_id = c.course_id " .
+        "JOIN courses c ON s.course_id = c.course_id " .
         "WHERE s.is_approved = 0 AND s.department_id = ? ORDER BY s.last_name, s.first_name"
     );
     $stmt->execute([$department_id]);

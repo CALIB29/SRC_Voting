@@ -1,6 +1,4 @@
 <?php
-session_start();
-
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 
@@ -138,9 +136,11 @@ try {
             color: var(--danger);
         }
     </style>
-</head>
+
+    <link rel="stylesheet" href="../../assets/css/mobile_base.css"></head>
 
 <body>
+<?php if (function_exists('renderMobileTopBar')) renderMobileTopBar('Users'); ?>
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -464,6 +464,8 @@ try {
             if (e.target.id === 'confirmationModal') hideConfirmation();
         }
     </script>
+
+<?php if (function_exists('renderMobileBottomNav')) renderMobileBottomNav('admin'); ?>
 </body>
 
 </html>

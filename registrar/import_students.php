@@ -1,5 +1,5 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_set_cookie_params(['path' => '/']); session_start(); }
 
 // -- 1. DATABASE CONNECTION --
 require_once 'includes/db_connections.php';

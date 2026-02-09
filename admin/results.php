@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
 
@@ -17,7 +16,7 @@ $page_title = "Current Results";
 if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     $election_id_to_show = $_GET['id'];
     $is_viewing_archive = true;
-    $stmt = $pdo->prepare("SELECT title FROM elections WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT title FROM vot_elections WHERE id = ?");
     $stmt->execute([$election_id_to_show]);
     $election_name_from_db = $stmt->fetchColumn();
     if ($election_name_from_db) {
@@ -25,7 +24,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
         $page_title = "Archive: " . $election_name;
     }
 } else {
-    $stmt = $pdo->prepare("SELECT id, title FROM elections WHERE is_active = 1");
+    $stmt = $pdo->prepare("SELECT id, title FROM vot_elections WHERE is_active = 1");
     $stmt->execute();
     $active_election = $stmt->fetch(PDO::FETCH_ASSOC);
     if ($active_election) {
@@ -43,8 +42,8 @@ if ($election_id_to_show) {
     // Logic updated for tie-breaker: first to receive a vote wins
     $stmt = $pdo->prepare("
         SELECT c.*, 
-        (SELECT MIN(vote_id) FROM votes WHERE candidate_id = c.id) as first_vote_id
-        FROM candidates c
+        (SELECT MIN(vote_id) FROM vot_votes WHERE candidate_id = c.id) as first_vote_id
+        FROM vot_candidates c
         WHERE c.election_id = :id 
         ORDER BY c.position, c.votes DESC, first_vote_id ASC
     ");
@@ -52,12 +51,12 @@ if ($election_id_to_show) {
     $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     if ($candidates) {
-        $stmt = $pdo->prepare("SELECT DISTINCT position FROM candidates WHERE election_id = :id");
+        $stmt = $pdo->prepare("SELECT DISTINCT position FROM vot_candidates WHERE election_id = :id");
         $stmt->execute(['id' => $election_id_to_show]);
         $positions_in_db = $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    $stmt = $pdo->prepare("SELECT COUNT(DISTINCT user_id) FROM votes WHERE election_id = :id");
+    $stmt = $pdo->prepare("SELECT COUNT(DISTINCT user_id) FROM vot_votes WHERE election_id = :id");
     $stmt->execute(['id' => $election_id_to_show]);
     $total_votes = $stmt->fetchColumn();
 }

@@ -5,7 +5,7 @@ require_once 'includes/functions.php';
 // Fetch courses from the database to populate the dropdown
 $courses = [];
 try {
-    $stmt = $pdo->query("SELECT course_id, course_name FROM course ORDER BY course_name ASC");
+    $stmt = $pdo->query("SELECT course_id, course_name FROM courses ORDER BY course_name ASC");
     $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     // Handle error if courses can't be fetched
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($error)) {
         try {
             // First, get the department_id from the selected course_id
-            $stmt = $pdo->prepare("SELECT department_id FROM course WHERE course_id = ?");
+            $stmt = $pdo->prepare("SELECT department_id FROM courses WHERE course_id = ?");
             $stmt->execute([$course_id]);
             $course_data = $stmt->fetch(PDO::FETCH_ASSOC);
 

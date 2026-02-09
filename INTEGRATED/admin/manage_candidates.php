@@ -1,7 +1,7 @@
 <?php
-session_start();
 require_once '../includes/db_connect.php';
 require_once '../includes/functions.php';
+require_once '../includes/config.php';
 
 if (!isset($_SESSION['admin_id'])) {
     header("Location: index.php");
@@ -9,7 +9,7 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 // Get the ID of the currently active election.
-$active_election_id = $pdo->query("SELECT id FROM elections WHERE is_active = 1")->fetchColumn();
+$active_election_id = $pdo->query("SELECT id FROM vot_elections WHERE is_active = 1")->fetchColumn();
 
 // Initialize message variables
 $message = '';
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_candidate'])) {
 
         if (empty($error)) {
             try {
-                $stmt = $pdo->prepare("INSERT INTO candidates 
+                $stmt = $pdo->prepare("INSERT INTO vot_candidates 
                     (first_name, middle_name, last_name, year, section, position, platform, photo_path, election_id) 
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([$first_name, $middle_name, $last_name, $year, $section, $position, $platform, $photo_path, $active_election_id]);
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_candidate'])) 
 
     if (empty($error)) {
         try {
-            $stmt = $pdo->prepare("UPDATE candidates SET 
+            $stmt = $pdo->prepare("UPDATE vot_candidates SET 
                 first_name = ?, middle_name = ?, last_name = ?, 
                 year = ?, section = ?, position = ?, 
                 platform = ?, photo_path = ? 
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_candidate'])) 
 $candidates = [];
 if ($active_election_id) {
     try {
-        $stmt = $pdo->prepare("SELECT * FROM candidates WHERE election_id = :election_id ORDER BY id DESC");
+        $stmt = $pdo->prepare("SELECT * FROM vot_candidates WHERE election_id = :election_id ORDER BY id DESC");
         $stmt->execute(['election_id' => $active_election_id]);
         $candidates = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
@@ -292,9 +292,11 @@ if ($active_election_id) {
             display: inline-block;
         }
     </style>
-</head>
+
+    <link rel="stylesheet" href="../../assets/css/mobile_base.css"></head>
 
 <body>
+<?php if (function_exists('renderMobileTopBar')) renderMobileTopBar('Candidates'); ?>
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -491,7 +493,7 @@ if ($active_election_id) {
                     </div>
                     <div class="search-container">
                         <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Search candidates..." id="search-candidates"
+                        <input type="text" placeholder="Search vot_candidates..." id="search-candidates"
                             class="modern-input">
                     </div>
                 </div>
@@ -871,6 +873,8 @@ if ($active_election_id) {
             });
         }
     </script>
+
+<?php if (function_exists('renderMobileBottomNav')) renderMobileBottomNav('admin'); ?>
 </body>
 
 </html>

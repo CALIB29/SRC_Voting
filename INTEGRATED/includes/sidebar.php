@@ -529,7 +529,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="elections.php">
+                        <a href="vot_elections.php">
                             <i class="fas fa-calendar-alt"></i>
                             <span>Elections</span>
                         </a>

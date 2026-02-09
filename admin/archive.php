@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once '../includes/db_connect.php';
 
 if (!isset($_SESSION['admin_id'])) {
@@ -8,7 +7,7 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 // Kunin lang ang mga naka-ARCHIVE na halalan (is_active = 0)
-$stmt = $pdo->prepare("SELECT * FROM elections WHERE is_active = 0 ORDER BY created_at DESC");
+$stmt = $pdo->prepare("SELECT * FROM vot_elections WHERE is_active = 0 ORDER BY created_at DESC");
 $stmt->execute();
 $elections = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -347,7 +346,7 @@ $elections = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </div>
 
                 <p style="margin-bottom: 2rem; color: var(--gray-medium);">Here is a list of all finished and archived
-                    elections.</p>
+                    vot_elections.</p>
 
                 <div class="table-container">
                     <table>
